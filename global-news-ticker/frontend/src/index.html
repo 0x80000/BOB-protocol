@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Global News Monitor</title>
+
+  <!-- Tailwind CSS via CDN (no build step required) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            gray: {
+              750: "#2d3748",
+            },
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    /* Custom scrollbar for column overflow */
+    .region-col::-webkit-scrollbar { width: 4px; }
+    .region-col::-webkit-scrollbar-track { background: transparent; }
+    .region-col::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 2px; }
+
+    /* Smooth card hover lift */
+    .news-card { transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease; }
+    .news-card:hover { transform: translateY(-2px); }
+
+    /* Spinner animation */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { animation: spin 0.9s linear infinite; display: inline-block; }
+
+    /* line-clamp polyfill for older WebKit */
+    .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  </style>
+</head>
+
+<body class="bg-gray-900 text-gray-100 min-h-screen flex flex-col">
+
+  <!-- ── Header ─────────────────────────────────────────────────────────── -->
+  <header class="bg-gray-800 border-b border-gray-700 sticky top-0 z-50 shadow-xl">
+    <div class="max-w-screen-2xl mx-auto px-4 py-3 flex flex-wrap items-center gap-3">
+
+      <!-- Brand -->
+      <div class="flex items-center gap-2 mr-auto">
+        <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064" />
+        </svg>
+        <h1 class="text-lg font-bold tracking-tight text-white">Global News Monitor</h1>
+      </div>
+
+      <!-- Filter chips -->
+      <div id="filter-bar" class="flex flex-wrap gap-1.5 text-xs"></div>
+
+      <!-- Meta + refresh -->
+      <div class="flex items-center gap-3 shrink-0">
+        <span id="last-updated" class="text-xs text-gray-500 hidden sm:block"></span>
+        <button id="refresh-btn" onclick="loadNews()"
+                class="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-500
+                       text-white text-xs font-semibold rounded-lg transition-colors">
+          <svg id="refresh-icon" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11
+                     11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+          </svg>
+          Aktualisieren
+        </button>
+      </div>
+    </div>
+
+    <!-- Legend row -->
+    <div class="max-w-screen-2xl mx-auto px-4 pb-2.5 flex flex-wrap gap-5 text-xs text-gray-400">
+      <span class="flex items-center gap-1.5">
+        <span class="w-2.5 h-2.5 rounded-full bg-orange-500 shrink-0"></span>
+        Staatlich / Mainstream
+      </span>
+      <span class="flex items-center gap-1.5">
+        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></span>
+        Alternativ / Unabhängig
+      </span>
+      <span id="article-count" class="ml-auto text-gray-600"></span>
+    </div>
+  </header>
+
+  <!-- ── Loading state ───────────────────────────────────────────────────── -->
+  <div id="loading" class="flex-1 flex flex-col items-center justify-center py-24 hidden">
+    <div class="spinner text-4xl text-blue-500 mb-4">
+      <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11
+                 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+      </svg>
+    </div>
+    <p class="text-gray-400 text-sm">Nachrichten werden geladen …</p>
+  </div>
+
+  <!-- ── Error state ─────────────────────────────────────────────────────── -->
+  <div id="error-box" class="hidden max-w-md mx-auto mt-16 p-5 bg-red-900/30
+       border border-red-700 rounded-xl text-red-300 text-sm text-center">
+  </div>
+
+  <!-- ── Empty state (news.json exists but is empty) ─────────────────────── -->
+  <div id="empty-box" class="hidden flex-1 flex flex-col items-center justify-center py-24 text-gray-500">
+    <svg class="w-12 h-12 mb-4 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10l6 6v8a2 2 0 01-2 2z"/>
+    </svg>
+    <p>Noch keine Artikel verfügbar. Das Backend lädt gerade …</p>
+  </div>
+
+  <!-- ── Main grid ───────────────────────────────────────────────────────── -->
+  <main id="news-grid" class="max-w-screen-2xl mx-auto w-full px-4 py-6 flex-1"></main>
+
+  <!-- ── Footer ─────────────────────────────────────────────────────────── -->
+  <footer class="text-center text-gray-700 text-xs py-5 border-t border-gray-800">
+    Global News Monitor &middot; Quellen: öffentliche RSS-Feeds &middot;
+    Aktualisierung alle 30 Minuten
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

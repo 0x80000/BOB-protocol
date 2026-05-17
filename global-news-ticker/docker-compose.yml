@@ -1,0 +1,36 @@
+version: "3.9"
+
+services:
+  news-backend:
+    build: ./backend
+    container_name: news-backend
+    volumes:
+      - news_data:/app/data
+    environment:
+      - TZ=Europe/Berlin
+    restart: unless-stopped
+    networks:
+      - news-net
+
+  news-frontend:
+    build: ./frontend
+    container_name: news-frontend
+    ports:
+      - "8080:80"
+    volumes:
+      - news_data:/usr/share/nginx/html/data:ro
+    environment:
+      - TZ=Europe/Berlin
+    depends_on:
+      - news-backend
+    restart: unless-stopped
+    networks:
+      - news-net
+
+volumes:
+  news_data:
+    name: global_news_data
+
+networks:
+  news-net:
+    driver: bridge

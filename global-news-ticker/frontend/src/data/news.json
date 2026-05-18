@@ -1,0 +1,227 @@
+[
+  {
+    "title": "U.S. Senate passes sweeping AI regulation bill with bipartisan support",
+    "link": "https://example.com/us-ai-regulation",
+    "source": "New York Times",
+    "region": "USA",
+    "type": "Mainstream",
+    "published": "2026-05-18T07:45:00Z",
+    "summary": "The Senate voted 68-31 to advance landmark legislation that would require federal oversight of large AI systems, marking the most significant tech regulation in decades."
+  },
+  {
+    "title": "Federal Reserve signals pause in rate hikes as inflation cools to 2.1%",
+    "link": "https://example.com/fed-rates",
+    "source": "Wall Street Journal",
+    "region": "USA",
+    "type": "Mainstream",
+    "published": "2026-05-18T06:20:00Z",
+    "summary": "Chair Powell indicated that the central bank is comfortable holding rates steady through summer, citing sustained progress on inflation without meaningful labor market deterioration."
+  },
+  {
+    "title": "Leaked Pentagon files reveal undisclosed drone program in three countries",
+    "link": "https://example.com/pentagon-leak",
+    "source": "The Intercept",
+    "region": "USA",
+    "type": "Alternative",
+    "published": "2026-05-18T05:10:00Z",
+    "summary": "Documents obtained by The Intercept show covert drone surveillance operations conducted without congressional notification in Somalia, Pakistan, and Yemen since 2024."
+  },
+  {
+    "title": "Investigative report: Private prison contractors received $4.2bn in no-bid COVID contracts",
+    "link": "https://example.com/propublica-prisons",
+    "source": "ProPublica",
+    "region": "USA",
+    "type": "Alternative",
+    "published": "2026-05-17T21:30:00Z",
+    "summary": "A two-year investigation found that federal agencies bypassed competitive bidding requirements to award billions to companies with documented safety violations."
+  },
+  {
+    "title": "Global arms exports hit record $142 billion amid continued conflicts",
+    "link": "https://example.com/reuters-arms",
+    "source": "Reuters",
+    "region": "USA",
+    "type": "Mainstream",
+    "published": "2026-05-17T18:00:00Z",
+    "summary": "SIPRI data shows weapons exports grew 18% year-on-year, with the U.S. accounting for 43% of global transfers and European deliveries up sharply due to the ongoing conflict in Ukraine."
+  },
+  {
+    "title": "Argentina logra acuerdo con FMI por USD 20.000 millones para estabilizar el peso",
+    "link": "https://example.com/argentina-fmi",
+    "source": "Clarín",
+    "region": "Südamerika",
+    "type": "Mainstream",
+    "published": "2026-05-18T07:00:00Z",
+    "summary": "El gobierno de Milei anunció un nuevo programa de financiamiento con el Fondo Monetario Internacional, que incluye metas fiscales estrictas y una banda cambiaria ampliada."
+  },
+  {
+    "title": "Brazil's deforestation drops 45% as enforcement drones deployed across Amazon",
+    "link": "https://example.com/brazil-amazon",
+    "source": "O Globo",
+    "region": "Südamerika",
+    "type": "Mainstream",
+    "published": "2026-05-18T05:30:00Z",
+    "summary": "INPE satellite data confirms the sharpest annual decline in Amazon deforestation since monitoring began, attributed to increased enforcement operations and international funding."
+  },
+  {
+    "title": "Venezuela holds emergency summit with Caribbean allies over U.S. sanctions",
+    "link": "https://example.com/venezuela-summit",
+    "source": "Telesur",
+    "region": "Südamerika",
+    "type": "Mainstream",
+    "published": "2026-05-17T20:15:00Z",
+    "summary": "President Maduro convened regional leaders in Caracas to coordinate a response to the renewed sanctions package, which targets the country's oil sector and financial institutions."
+  },
+  {
+    "title": "El Salvador: Three journalists detained covering anti-gang crackdown released after 40 days",
+    "link": "https://example.com/el-salvador-press",
+    "source": "El Faro",
+    "region": "Südamerika",
+    "type": "Alternative",
+    "published": "2026-05-18T04:45:00Z",
+    "summary": "Reporters from two independent outlets were held without charges under the state of emergency law, drawing international condemnation from press freedom organizations."
+  },
+  {
+    "title": "Mexican cartel expands cocaine processing operations into Ecuador, report finds",
+    "link": "https://example.com/cartel-ecuador",
+    "source": "InSight Crime",
+    "region": "Südamerika",
+    "type": "Alternative",
+    "published": "2026-05-17T16:00:00Z",
+    "summary": "An 18-month investigation documents how Sinaloa Cartel affiliates have established at least seven processing labs in Ecuador's coastal provinces, exploiting governance gaps."
+  },
+  {
+    "title": "Russia announces new Arctic military base construction ahead of NATO summit",
+    "link": "https://example.com/russia-arctic",
+    "source": "TASS",
+    "region": "Russland",
+    "type": "Mainstream",
+    "published": "2026-05-18T08:00:00Z",
+    "summary": "The Defense Ministry confirmed construction of a new dual-use military and scientific station on Novaya Zemlya, equipped with next-generation radar systems and extended winter operations capacity."
+  },
+  {
+    "title": "Путин подписал указ о расширении программы «Семейный капитал»",
+    "link": "https://example.com/ria-family",
+    "source": "RIA Novosti",
+    "region": "Russland",
+    "type": "Mainstream",
+    "published": "2026-05-18T06:45:00Z",
+    "summary": "Новый указ увеличивает размер выплат для семей с тремя и более детьми, а также расширяет перечень целей использования средств материнского капитала."
+  },
+  {
+    "title": "Russian economy grows 3.4% but Western analysts warn of sustainability risks",
+    "link": "https://example.com/kommersant-economy",
+    "source": "Kommersant",
+    "region": "Russland",
+    "type": "Mainstream",
+    "published": "2026-05-17T19:30:00Z",
+    "summary": "Rosstat data shows continued growth driven by defense spending, but independent economists warn that military Keynesianism has structural limits and inflation is underreported."
+  },
+  {
+    "title": "How Russia's shadow fleet bypasses oil sanctions: an investigation",
+    "link": "https://example.com/meduza-oil",
+    "source": "Meduza",
+    "region": "Russland",
+    "type": "Alternative",
+    "published": "2026-05-18T07:15:00Z",
+    "summary": "Meduza tracked over 200 tankers operating under obscure flags of convenience, documenting a network of shell companies in UAE, Turkey, and India that routes Russian crude to Asian markets."
+  },
+  {
+    "title": "Moscow court sentences opposition figure to 9 years in closed-door proceedings",
+    "link": "https://example.com/moscowtimes-trial",
+    "source": "The Moscow Times",
+    "region": "Russland",
+    "type": "Alternative",
+    "published": "2026-05-17T15:00:00Z",
+    "summary": "The verdict against former regional governor on treason charges was handed down without public access to the courtroom, drawing condemnation from human rights groups."
+  },
+  {
+    "title": "China launches world's largest offshore wind farm off Fujian coast",
+    "link": "https://example.com/xinhua-wind",
+    "source": "Xinhua",
+    "region": "China",
+    "type": "Mainstream",
+    "published": "2026-05-18T07:30:00Z",
+    "summary": "The 8.5 GW Fuqing Offshore Wind Complex, stretching across 420 square kilometers, begins commercial operations, representing a milestone in China's goal of 1,200 GW renewable capacity by 2030."
+  },
+  {
+    "title": "Taiwan provocations will be met with decisive force, PLA warns after drill",
+    "link": "https://example.com/globaltimes-taiwan",
+    "source": "Global Times",
+    "region": "China",
+    "type": "Mainstream",
+    "published": "2026-05-18T05:00:00Z",
+    "summary": "A People's Liberation Army spokesperson issued a stern warning following joint U.S.-Taiwan naval exercises, calling the maneuvers a 'dangerous provocation' and announcing new air incursion response protocols."
+  },
+  {
+    "title": "Hong Kong sees wave of foreign business exits as new security provisions take effect",
+    "link": "https://example.com/scmp-hk",
+    "source": "South China Morning Post",
+    "region": "China",
+    "type": "Mainstream",
+    "published": "2026-05-17T22:00:00Z",
+    "summary": "At least 14 multinational companies have formally restructured their Asia-Pacific headquarters away from Hong Kong in the past quarter, citing legal uncertainties under the expanded national security framework."
+  },
+  {
+    "title": "Inside China's social credit blacklist: 12 million citizens barred from travel",
+    "link": "https://example.com/cdt-social-credit",
+    "source": "China Digital Times",
+    "region": "China",
+    "type": "Alternative",
+    "published": "2026-05-18T03:30:00Z",
+    "summary": "Court documents and provincial government data compiled by CDT reveal the full scale of travel and financial restrictions applied to citizens flagged by the expanded scoring system."
+  },
+  {
+    "title": "Chinese banks face $340bn in hidden local government debt, analysis shows",
+    "link": "https://example.com/caixin-debt",
+    "source": "Caixin Global",
+    "region": "China",
+    "type": "Alternative",
+    "published": "2026-05-17T14:00:00Z",
+    "summary": "An investigation into off-balance-sheet financing vehicles used by local authorities reveals systemic exposure that exceeds official figures, raising concerns among international creditors."
+  },
+  {
+    "title": "India and Pakistan agree to resume trade through Wagah crossing after 3-year halt",
+    "link": "https://example.com/toi-india-pakistan",
+    "source": "Times of India",
+    "region": "Indien",
+    "type": "Mainstream",
+    "published": "2026-05-18T06:00:00Z",
+    "summary": "The breakthrough agreement, brokered with UAE mediation, will initially allow pharmaceutical and agricultural goods and is seen as a significant de-escalation following the 2023 border standoff."
+  },
+  {
+    "title": "India's Supreme Court rules caste-based affirmative action in private sector is constitutional",
+    "link": "https://example.com/thehindu-sc",
+    "source": "The Hindu",
+    "region": "Indien",
+    "type": "Mainstream",
+    "published": "2026-05-17T17:30:00Z",
+    "summary": "A five-judge constitutional bench upheld a Maharashtra law mandating 13% reservation for Scheduled Castes in private companies with over 100 employees, splitting the court 3-2 on reasoning."
+  },
+  {
+    "title": "Electoral bonds data reveals ₹8,200 crore flowed to ruling party from companies under CBI investigation",
+    "link": "https://example.com/thewire-bonds",
+    "source": "The Wire",
+    "region": "Indien",
+    "type": "Alternative",
+    "published": "2026-05-18T04:00:00Z",
+    "summary": "Analysis of ECI disclosure data shows a statistically significant correlation between Central Bureau of Investigation raids on companies and subsequent large electoral bond purchases."
+  },
+  {
+    "title": "Manipur: 18 months of ethnic conflict and a government that looked away",
+    "link": "https://example.com/scroll-manipur",
+    "source": "Scroll.in",
+    "region": "Indien",
+    "type": "Alternative",
+    "published": "2026-05-17T12:00:00Z",
+    "summary": "A long-form investigation documents how central and state authorities failed to prevent the displacement of over 70,000 people and the destruction of 6,000 homes in the ongoing ethnic conflict."
+  },
+  {
+    "title": "Adani Group's port concession contracts contain secret revenue-sharing clauses, documents show",
+    "link": "https://example.com/caravan-adani",
+    "source": "The Caravan",
+    "region": "Indien",
+    "type": "Alternative",
+    "published": "2026-05-16T10:00:00Z",
+    "summary": "Concession agreements obtained through RTI requests reveal terms that differ significantly from those disclosed in public filings, raising questions about competitive bidding processes at seven major ports."
+  }
+]

@@ -13,12 +13,11 @@ const REGION_META = {
 
 // ── State ──────────────────────────────────────────────────────────────────
 
-let allArticles  = [];
-let currentView  = "regions";   // regions | trending | breaking | mostread
-let activeRegion = null;
-let typeFilter   = "all";       // all | Mainstream | Alternative
-let timeFilterH  = 48;
-let searchQuery  = "";
+let allArticles = [];
+let currentView = "regions";   // regions | trending | breaking | mostread
+let typeFilter  = "all";       // all | Mainstream | Alternative
+let timeFilterH = 48;
+let searchQuery = "";
 
 // ── Click tracking (localStorage) ─────────────────────────────────────────
 
@@ -40,12 +39,6 @@ function esc(s) {
 }
 function show(id) { document.getElementById(id)?.classList.remove("hidden"); }
 function hide(id) { document.getElementById(id)?.classList.add("hidden"); }
-
-function chipCls(active) {
-  return `px-2.5 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer ${
-    active ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-  }`;
-}
 
 function setRefreshBusy(busy) {
   const btn = document.getElementById("refresh-btn");
@@ -88,7 +81,7 @@ function applyFilters(articles) {
 
 // ── Card builder ───────────────────────────────────────────────────────────
 
-function buildCard(article, opts = {}) {
+function buildCard(article) {
   const isMainstream = article.type === "Mainstream";
   const borderColor  = isMainstream ? "border-l-orange-500" : "border-l-emerald-500";
   const labelCls     = isMainstream
@@ -115,16 +108,13 @@ function buildCard(article, opts = {}) {
   if (article.urgent)   badges.push(`<span class="text-[10px] px-1.5 py-0.5 rounded bg-red-900/70 text-red-300 border border-red-700/50 font-bold urgent-pulse">⚡ Breaking</span>`);
   if (article.trending) badges.push(`<span class="text-[10px] px-1.5 py-0.5 rounded bg-yellow-900/70 text-yellow-300 border border-yellow-700/50 font-bold">🔥 ${article.coverage_count} Quellen</span>`);
   if (clicks > 0)       badges.push(`<span class="text-[10px] text-gray-500">👁 ${clicks}×</span>`);
-  const regionTag = opts.showRegion
-    ? `<span class="text-[10px] text-gray-500">${REGION_META[article.region]?.flag ?? ""} ${esc(article.region)}</span>`
-    : "";
 
   card.innerHTML = `
     <div class="flex items-start justify-between gap-2 mb-1.5">
       <span class="text-xs font-semibold text-gray-300 leading-tight truncate">${esc(article.source)}</span>
       <span class="text-[10px] px-1.5 py-0.5 rounded font-semibold shrink-0 ${labelCls}">${isMainstream ? "Mainstream" : "Alternativ"}</span>
     </div>
-    ${(badges.length || regionTag) ? `<div class="flex flex-wrap gap-1.5 mb-1.5">${badges.join("")}${regionTag}</div>` : ""}
+    ${badges.length ? `<div class="flex flex-wrap gap-1.5 mb-1.5">${badges.join("")}</div>` : ""}
     <h3 class="text-sm font-semibold text-gray-100 group-hover:text-white leading-snug mb-2 line-clamp-3">
       ${esc(article.title)}
     </h3>
@@ -134,45 +124,14 @@ function buildCard(article, opts = {}) {
   return card;
 }
 
-// ── Region filter bar ──────────────────────────────────────────────────────
-
-function buildRegionBar(byRegion) {
-  const bar = document.getElementById("region-filter");
-  if (!bar) return;
-  bar.innerHTML = "";
-  bar.style.display = "";
-
-  const mkBtn = (label, region) => {
-    const b = document.createElement("button");
-    b.textContent = label;
-    b.className = chipCls(region === null ? activeRegion === null : activeRegion === region);
-    // All filter changes go through render() so the grid is always cleanly rebuilt
-    b.onclick = () => {
-      activeRegion = (activeRegion === region) ? null : region;
-      render();
-    };
-    bar.appendChild(b);
-  };
-
-  mkBtn("Alle", null);
-  REGIONS.forEach(r => mkBtn(`${REGION_META[r]?.flag ?? ""} ${r} (${(byRegion[r] || []).length})`, r));
-}
-
 // ── Shared region-column layout ────────────────────────────────────────────
 
-/**
- * Renders articles in regional columns (same layout for all views).
- * @param {object[]} articles  - pre-filtered/sorted articles for this view
- * @param {string}   emptyMsg  - shown per column when no articles match
- */
-function renderByRegion(articles, emptyMsg = "Keine Artikel") {
+function renderByRegion(articles, emptyMsg) {
   const grid = document.getElementById("news-grid");
 
-  // Group by region (preserving order within each group)
+  // Group by region
   const byRegion = Object.fromEntries(REGIONS.map(r => [r, []]));
   articles.forEach(a => { if (byRegion[a.region]) byRegion[a.region].push(a); });
-
-  buildRegionBar(byRegion);
 
   const cols = document.createElement("div");
   cols.className = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-5";
@@ -180,15 +139,12 @@ function renderByRegion(articles, emptyMsg = "Keine Artikel") {
   REGIONS.forEach(region => {
     const meta       = REGION_META[region] ?? { flag: "🌍", accent: "border-gray-600" };
     const regionArts = byRegion[region] ?? [];
-    const visible    = !activeRegion || activeRegion === region;
 
     const col = document.createElement("div");
-    col.className      = "flex flex-col gap-2.5";
-    col.dataset.region = region;
-    col.style.display  = visible ? "" : "none";
+    col.className = "flex flex-col gap-2.5";
 
     const hdr = document.createElement("div");
-    hdr.className = `flex items-center gap-2 pb-2 border-b-2 ${meta.accent} sticky top-[136px] bg-gray-900 pt-1 z-10`;
+    hdr.className = `flex items-center gap-2 pb-2 border-b-2 ${meta.accent} sticky top-[88px] bg-gray-900 pt-1 z-10`;
     hdr.innerHTML = `
       <span class="text-xl leading-none">${meta.flag}</span>
       <h2 class="text-sm font-bold text-white uppercase tracking-wider">${esc(region)}</h2>
@@ -216,16 +172,15 @@ function renderRegions(articles) {
 }
 
 function renderTrending(articles) {
-  const filtered = articles
+  const filtered = [...articles]
     .filter(a => (a.coverage_count ?? 1) >= 2)
     .sort((a, b) => (b.coverage_count ?? 1) - (a.coverage_count ?? 1));
 
   const grid = document.getElementById("news-grid");
-  const total = filtered.length;
-  const hdr   = document.createElement("p");
+  const hdr  = document.createElement("p");
   hdr.className   = "text-gray-500 text-sm mb-4";
-  hdr.textContent = total
-    ? `${total} Artikel von mehreren Quellen gleichzeitig abgedeckt`
+  hdr.textContent = filtered.length
+    ? `${filtered.length} Artikel von mehreren Quellen abgedeckt`
     : "Keine Trending-Artikel für die gewählten Filter.";
   grid.appendChild(hdr);
 
@@ -240,15 +195,15 @@ function renderBreaking(articles) {
   hdr.className = "text-gray-500 text-sm mb-4";
   hdr.innerHTML = filtered.length
     ? `<span class="text-red-400 urgent-pulse">⚡</span> ${filtered.length} Breaking-Artikel`
-    : "Aktuell keine Breaking-News in den gefilterten Artikeln.";
+    : "Aktuell keine Breaking-News für die gewählten Filter.";
   grid.appendChild(hdr);
 
   renderByRegion(filtered, "Kein Breaking in dieser Region");
 }
 
 function renderMostRead(articles) {
-  const clicks     = getClicks();
-  const filtered   = articles
+  const clicks   = getClicks();
+  const filtered = articles
     .map(a => ({ ...a, _clicks: clicks[a.link] || 0 }))
     .filter(a => a._clicks > 0)
     .sort((a, b) => b._clicks - a._clicks);
@@ -284,20 +239,12 @@ function renderMostRead(articles) {
 
 function render() {
   const grid = document.getElementById("news-grid");
-  grid.innerHTML = "";   // always start clean
-  hide("empty-box");
+  grid.innerHTML = "";
 
   const filtered = applyFilters(allArticles);
 
   const countEl = document.getElementById("article-count");
   if (countEl) countEl.textContent = `${filtered.length} Artikel`;
-
-  // Hide region bar for non-region views; renderRegions will show it
-  const rf = document.getElementById("region-filter");
-  if (rf && currentView !== "regions") {
-    rf.innerHTML = "";
-    rf.style.display = "none";
-  }
 
   switch (currentView) {
     case "regions":  renderRegions(filtered);  break;
@@ -310,8 +257,7 @@ function render() {
 // ── Filter / view setters ──────────────────────────────────────────────────
 
 function setView(v) {
-  currentView  = v;
-  activeRegion = null;
+  currentView = v;
   document.querySelectorAll(".view-tab").forEach(b => {
     b.className = `view-tab px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
       b.dataset.view === v
@@ -334,21 +280,13 @@ function setTypeFilter(t) {
   render();
 }
 
-function setTimeFilter(h) {
-  timeFilterH = parseInt(h, 10);
-  render();
-}
-
-function setSearch(q) {
-  searchQuery = q.trim();
-  render();
-}
+function setTimeFilter(h) { timeFilterH = parseInt(h, 10); render(); }
+function setSearch(q)      { searchQuery = q.trim();        render(); }
 
 // ── Data loading ───────────────────────────────────────────────────────────
 
 async function loadNews() {
   hide("error-box");
-  hide("empty-box");
   show("loading");
   hide("news-grid");
   setRefreshBusy(true);

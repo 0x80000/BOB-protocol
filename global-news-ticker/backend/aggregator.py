@@ -26,14 +26,19 @@ MAX_AGE_HOURS = 48
 FETCH_WORKERS = 10
 FETCH_TIMEOUT = 15
 
-# Shared session with a browser-like User-Agent (bypasses basic bot blocks)
+# In-memory translation cache — survives across aggregation cycles
+_title_cache: dict[str, str] = {}
+
+# Shared HTTP session with browser-like headers
 _SESSION = requests.Session()
 _SESSION.headers.update({
     "User-Agent": (
-        "Mozilla/5.0 (compatible; GlobalNewsMonitor/1.0) "
-        "AppleWebKit/537.36 (KHTML, like Gecko)"
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/124.0 Safari/537.36"
     ),
     "Accept": "application/rss+xml, application/xml, text/xml, */*",
+    "Accept-Language": "en-US,en;q=0.9",
 })
 
 # ---------------------------------------------------------------------------
@@ -48,10 +53,10 @@ FEEDS = [
         "url": "https://rss.nytimes.com/services/xml/rss/nyt/World.xml",
     },
     {
-        "source": "AP News",          # Reuters entfernt – kostenlose Feeds eingestellt
+        "source": "BBC World",
         "region": "USA",
         "type": "Mainstream",
-        "url": "https://feeds.apnews.com/rss/apf-topnews",
+        "url": "http://feeds.bbci.co.uk/news/world/rss.xml",
     },
     {
         "source": "Wall Street Journal",
@@ -79,28 +84,28 @@ FEEDS = [
         "url": "https://www.clarin.com/rss/lo-ultimo/",
     },
     {
-        "source": "Infobae",          # O Globo liefert 0 Artikel – Ersatz
+        "source": "MercoPress",
         "region": "Südamerika",
         "type": "Mainstream",
-        "url": "https://www.infobae.com/feeds/rss/",
+        "url": "https://en.mercopress.com/rss",
     },
     {
-        "source": "France24 ES",      # Telesur-Ersatz (stabiler Feed)
+        "source": "France24 ES",
         "region": "Südamerika",
         "type": "Mainstream",
         "url": "https://www.france24.com/es/rss",
-    },
-    {
-        "source": "El Faro",
-        "region": "Südamerika",
-        "type": "Alternative",
-        "url": "https://elfaro.net/rss",
     },
     {
         "source": "InSight Crime",
         "region": "Südamerika",
         "type": "Alternative",
         "url": "https://insightcrime.org/feed/",
+    },
+    {
+        "source": "NACLA",
+        "region": "Südamerika",
+        "type": "Alternative",
+        "url": "https://nacla.org/taxonomy/term/2/feed",
     },
     # ── Russland ─────────────────────────────────────────────────────────────
     {
@@ -159,7 +164,7 @@ FEEDS = [
         "url": "https://chinadigitaltimes.net/feed/",
     },
     {
-        "source": "Sixth Tone",       # Caixin paywalled – Ersatz
+        "source": "Sixth Tone",
         "region": "China",
         "type": "Alternative",
         "url": "https://www.sixthtone.com/rss",
@@ -178,30 +183,31 @@ FEEDS = [
         "url": "https://www.thehindu.com/feeder/default.rss",
     },
     {
-        "source": "The Wire",
+        "source": "NDTV",
         "region": "Indien",
         "type": "Alternative",
-        "url": "https://thewire.in/rss",
+        "url": "https://feeds.feedburner.com/ndtvnews-top-stories",
     },
     {
-        "source": "Scroll.in",
+        "source": "Hindustan Times",
         "region": "Indien",
         "type": "Alternative",
-        "url": "https://scroll.in/feed",
+        "url": "https://www.hindustantimes.com/feeds/rss/india-news/rssfeed.xml",
     },
     {
-        "source": "The Print",        # The Caravan kaputt – stabiler Ersatz
+        "source": "Economic Times",
         "region": "Indien",
         "type": "Alternative",
-        "url": "https://theprint.in/feed/",
+        "url": "https://economictimes.indiatimes.com/rssfeedsdefault.cms",
     },
 ]
 
 _TAG_RE = re.compile(r"<[^>]+>")
-TRANSLATE_BATCH = 40
+TRANSLATE_BATCH = 50
 
 
 def _translate_batch(texts: list[str]) -> list[str]:
+    """Translate one batch; returns originals on failure."""
     if not texts:
         return []
     try:
@@ -209,20 +215,40 @@ def _translate_batch(texts: list[str]) -> list[str]:
         return [r if r else t for r, t in zip(results, texts)]
     except Exception as exc:
         log.warning("Translation batch failed: %s", exc)
-        return texts
+        return list(texts)
 
 
 def translate_titles(articles: list[dict]) -> None:
-    titles = [a["title"] for a in articles]
-    translated: list[str] = []
-    for i in range(0, len(titles), TRANSLATE_BATCH):
-        batch = titles[i : i + TRANSLATE_BATCH]
-        translated.extend(_translate_batch(batch))
-        if i + TRANSLATE_BATCH < len(titles):
-            time.sleep(0.3)
-    for article, de_title in zip(articles, translated):
-        article["title"] = de_title
-    log.info("Translated %d titles to German", len(translated))
+    """Translate titles to German using an in-memory cache."""
+    global _title_cache
+
+    # Separate articles whose titles aren't cached yet
+    uncached = [(i, a["title"]) for i, a in enumerate(articles)
+                if a["title"] and a["title"] not in _title_cache]
+
+    if uncached:
+        indices, titles = zip(*uncached)
+        titles = list(titles)
+        translated: list[str] = []
+
+        # Translate in parallel batches (2 workers to stay within free rate limits)
+        batches = [titles[i:i + TRANSLATE_BATCH] for i in range(0, len(titles), TRANSLATE_BATCH)]
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+            results = list(pool.map(_translate_batch, batches))
+        for r in results:
+            translated.extend(r)
+
+        # Store in cache
+        for orig, de in zip(titles, translated):
+            _title_cache[orig] = de
+
+        log.info("Translated %d new titles (cache size: %d)", len(uncached), len(_title_cache))
+    else:
+        log.info("All %d titles served from cache", len(articles))
+
+    # Apply cache to all articles
+    for article in articles:
+        article["title"] = _title_cache.get(article["title"], article["title"])
 
 
 def _strip_html(text: str) -> str:
@@ -247,34 +273,33 @@ def _parse_date(entry) -> datetime | None:
 
 def fetch_feed(cfg: dict) -> list[dict]:
     articles = []
-    url = cfg["url"]
     try:
-        # Fetch via requests for better encoding handling and HTTP error detection
-        resp = _SESSION.get(url, timeout=FETCH_TIMEOUT)
+        resp = _SESSION.get(cfg["url"], timeout=FETCH_TIMEOUT)
         resp.raise_for_status()
 
-        # Pass raw bytes so feedparser detects encoding from XML declaration / BOM
+        # Check content-type — skip if the server returned HTML (not a feed)
+        ct = resp.headers.get("Content-Type", "")
+        if "html" in ct and "xml" not in ct and "rss" not in ct:
+            raise ValueError(f"Server returned HTML instead of RSS (Content-Type: {ct})")
+
         parsed = feedparser.parse(resp.content)
 
-        # Accept bozo feeds if they still have entries (minor XML issues are common)
         if parsed.bozo and not parsed.entries:
             raise ValueError(f"Unparseable feed: {parsed.bozo_exception}")
 
         for entry in parsed.entries:
             pub_dt = _parse_date(entry)
             raw_summary = entry.get("summary") or entry.get("description") or ""
-            articles.append(
-                {
-                    "title": (entry.get("title") or "").strip(),
-                    "link": (entry.get("link") or "").strip(),
-                    "source": cfg["source"],
-                    "region": cfg["region"],
-                    "type": cfg["type"],
-                    "published": pub_dt.isoformat() if pub_dt else None,
-                    "summary": _truncate(_strip_html(raw_summary)),
-                    "_pub_dt": pub_dt,
-                }
-            )
+            articles.append({
+                "title": (entry.get("title") or "").strip(),
+                "link": (entry.get("link") or "").strip(),
+                "source": cfg["source"],
+                "region": cfg["region"],
+                "type": cfg["type"],
+                "published": pub_dt.isoformat() if pub_dt else None,
+                "summary": _truncate(_strip_html(raw_summary)),
+                "_pub_dt": pub_dt,
+            })
         log.info("  OK  %-28s  %d articles", cfg["source"], len(articles))
     except Exception as exc:
         log.warning("  ERR %-28s  %s", cfg["source"], exc)
@@ -291,7 +316,7 @@ def aggregate() -> None:
         for fut in concurrent.futures.as_completed(futures):
             all_articles.extend(fut.result())
 
-    # Deduplicate by link (keep first occurrence)
+    # Deduplicate by link
     seen: set[str] = set()
     unique: list[dict] = []
     for art in all_articles:
@@ -300,20 +325,16 @@ def aggregate() -> None:
             seen.add(link)
             unique.append(art)
 
-    # Split dated / undated — keep undated articles at the bottom
     dated = [a for a in unique if a["_pub_dt"] and a["_pub_dt"] >= cutoff]
     undated = [a for a in unique if not a["_pub_dt"]]
     dated.sort(key=lambda a: a["_pub_dt"], reverse=True)  # type: ignore[arg-type]
     combined = dated + undated
 
-    # Translate all titles to German
     log.info("Translating %d titles …", len(combined))
     translate_titles(combined)
 
-    # Strip internal helper field before serialising
     output = [{k: v for k, v in a.items() if k != "_pub_dt"} for a in combined]
 
-    # Atomic write: write to .tmp then rename
     OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
     tmp = OUTPUT_FILE.with_suffix(".tmp")
     tmp.write_text(json.dumps(output, ensure_ascii=False, indent=2), encoding="utf-8")

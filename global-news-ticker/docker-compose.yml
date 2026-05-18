@@ -1,9 +1,6 @@
-version: "3.9"
-
 services:
   news-backend:
     build: ./backend
-    container_name: news-backend
     volumes:
       - news_data:/app/data
     environment:
@@ -14,7 +11,6 @@ services:
 
   news-frontend:
     build: ./frontend
-    container_name: news-frontend
     ports:
       - "8080:80"
     volumes:
@@ -29,7 +25,6 @@ services:
 
 volumes:
   news_data:
-    name: global_news_data
 
 networks:
   news-net:

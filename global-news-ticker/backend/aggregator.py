@@ -10,6 +10,7 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 import feedparser
+import requests
 import schedule
 from deep_translator import GoogleTranslator
 
@@ -23,6 +24,17 @@ log = logging.getLogger(__name__)
 OUTPUT_FILE = Path("/app/data/news.json")
 MAX_AGE_HOURS = 48
 FETCH_WORKERS = 10
+FETCH_TIMEOUT = 15
+
+# Shared session with a browser-like User-Agent (bypasses basic bot blocks)
+_SESSION = requests.Session()
+_SESSION.headers.update({
+    "User-Agent": (
+        "Mozilla/5.0 (compatible; GlobalNewsMonitor/1.0) "
+        "AppleWebKit/537.36 (KHTML, like Gecko)"
+    ),
+    "Accept": "application/rss+xml, application/xml, text/xml, */*",
+})
 
 # ---------------------------------------------------------------------------
 # Feed catalogue — edit URLs here if a feed moves
@@ -36,10 +48,10 @@ FEEDS = [
         "url": "https://rss.nytimes.com/services/xml/rss/nyt/World.xml",
     },
     {
-        "source": "Reuters",
+        "source": "AP News",          # Reuters entfernt – kostenlose Feeds eingestellt
         "region": "USA",
         "type": "Mainstream",
-        "url": "http://feeds.reuters.com/reuters/worldnews",
+        "url": "https://feeds.apnews.com/rss/apf-topnews",
     },
     {
         "source": "Wall Street Journal",
@@ -67,16 +79,16 @@ FEEDS = [
         "url": "https://www.clarin.com/rss/lo-ultimo/",
     },
     {
-        "source": "O Globo",
+        "source": "Infobae",          # O Globo liefert 0 Artikel – Ersatz
         "region": "Südamerika",
         "type": "Mainstream",
-        "url": "https://oglobo.globo.com/rss.xml",
+        "url": "https://www.infobae.com/feeds/rss/",
     },
     {
-        "source": "Telesur",
+        "source": "France24 ES",      # Telesur-Ersatz (stabiler Feed)
         "region": "Südamerika",
         "type": "Mainstream",
-        "url": "https://www.telesurenglish.net/rss/",
+        "url": "https://www.france24.com/es/rss",
     },
     {
         "source": "El Faro",
@@ -147,10 +159,10 @@ FEEDS = [
         "url": "https://chinadigitaltimes.net/feed/",
     },
     {
-        "source": "Caixin Global",
+        "source": "Sixth Tone",       # Caixin paywalled – Ersatz
         "region": "China",
         "type": "Alternative",
-        "url": "https://www.caixinglobal.com/rss/rss.xml",
+        "url": "https://www.sixthtone.com/rss",
     },
     # ── Indien ───────────────────────────────────────────────────────────────
     {
@@ -163,7 +175,7 @@ FEEDS = [
         "source": "The Hindu",
         "region": "Indien",
         "type": "Mainstream",
-        "url": "https://www.thehindu.com/featureline/feed/rss/",
+        "url": "https://www.thehindu.com/feeder/default.rss",
     },
     {
         "source": "The Wire",
@@ -178,24 +190,22 @@ FEEDS = [
         "url": "https://scroll.in/feed",
     },
     {
-        "source": "The Caravan",
+        "source": "The Print",        # The Caravan kaputt – stabiler Ersatz
         "region": "Indien",
         "type": "Alternative",
-        "url": "https://caravanmagazine.in/feed",
+        "url": "https://theprint.in/feed/",
     },
 ]
 
 _TAG_RE = re.compile(r"<[^>]+>")
-TRANSLATE_BATCH = 40  # texts per Google Translate request
+TRANSLATE_BATCH = 40
 
 
 def _translate_batch(texts: list[str]) -> list[str]:
-    """Translate a list of strings to German. Returns originals on failure."""
     if not texts:
         return []
     try:
         results = GoogleTranslator(source="auto", target="de").translate_batch(texts)
-        # translate_batch can return None for empty strings — fall back to original
         return [r if r else t for r, t in zip(results, texts)]
     except Exception as exc:
         log.warning("Translation batch failed: %s", exc)
@@ -203,14 +213,13 @@ def _translate_batch(texts: list[str]) -> list[str]:
 
 
 def translate_titles(articles: list[dict]) -> None:
-    """Translate article titles in-place to German, in batches."""
     titles = [a["title"] for a in articles]
     translated: list[str] = []
     for i in range(0, len(titles), TRANSLATE_BATCH):
         batch = titles[i : i + TRANSLATE_BATCH]
         translated.extend(_translate_batch(batch))
         if i + TRANSLATE_BATCH < len(titles):
-            time.sleep(0.3)  # be polite to the free API
+            time.sleep(0.3)
     for article, de_title in zip(articles, translated):
         article["title"] = de_title
     log.info("Translated %d titles to German", len(translated))
@@ -238,19 +247,22 @@ def _parse_date(entry) -> datetime | None:
 
 def fetch_feed(cfg: dict) -> list[dict]:
     articles = []
+    url = cfg["url"]
     try:
-        parsed = feedparser.parse(
-            cfg["url"],
-            request_headers={"User-Agent": "GlobalNewsMonitor/1.0"},
-        )
+        # Fetch via requests for better encoding handling and HTTP error detection
+        resp = _SESSION.get(url, timeout=FETCH_TIMEOUT)
+        resp.raise_for_status()
+
+        # Pass raw bytes so feedparser detects encoding from XML declaration / BOM
+        parsed = feedparser.parse(resp.content)
+
+        # Accept bozo feeds if they still have entries (minor XML issues are common)
         if parsed.bozo and not parsed.entries:
-            raise ValueError(str(parsed.bozo_exception))
+            raise ValueError(f"Unparseable feed: {parsed.bozo_exception}")
 
         for entry in parsed.entries:
             pub_dt = _parse_date(entry)
-            raw_summary = (
-                entry.get("summary") or entry.get("description") or ""
-            )
+            raw_summary = entry.get("summary") or entry.get("description") or ""
             articles.append(
                 {
                     "title": (entry.get("title") or "").strip(),

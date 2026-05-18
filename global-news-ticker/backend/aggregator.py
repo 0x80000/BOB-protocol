@@ -11,6 +11,7 @@ from pathlib import Path
 
 import feedparser
 import schedule
+from deep_translator import GoogleTranslator
 
 logging.basicConfig(
     level=logging.INFO,
@@ -185,6 +186,34 @@ FEEDS = [
 ]
 
 _TAG_RE = re.compile(r"<[^>]+>")
+TRANSLATE_BATCH = 40  # texts per Google Translate request
+
+
+def _translate_batch(texts: list[str]) -> list[str]:
+    """Translate a list of strings to German. Returns originals on failure."""
+    if not texts:
+        return []
+    try:
+        results = GoogleTranslator(source="auto", target="de").translate_batch(texts)
+        # translate_batch can return None for empty strings — fall back to original
+        return [r if r else t for r, t in zip(results, texts)]
+    except Exception as exc:
+        log.warning("Translation batch failed: %s", exc)
+        return texts
+
+
+def translate_titles(articles: list[dict]) -> None:
+    """Translate article titles in-place to German, in batches."""
+    titles = [a["title"] for a in articles]
+    translated: list[str] = []
+    for i in range(0, len(titles), TRANSLATE_BATCH):
+        batch = titles[i : i + TRANSLATE_BATCH]
+        translated.extend(_translate_batch(batch))
+        if i + TRANSLATE_BATCH < len(titles):
+            time.sleep(0.3)  # be polite to the free API
+    for article, de_title in zip(articles, translated):
+        article["title"] = de_title
+    log.info("Translated %d titles to German", len(translated))
 
 
 def _strip_html(text: str) -> str:
@@ -264,6 +293,10 @@ def aggregate() -> None:
     undated = [a for a in unique if not a["_pub_dt"]]
     dated.sort(key=lambda a: a["_pub_dt"], reverse=True)  # type: ignore[arg-type]
     combined = dated + undated
+
+    # Translate all titles to German
+    log.info("Translating %d titles …", len(combined))
+    translate_titles(combined)
 
     # Strip internal helper field before serialising
     output = [{k: v for k, v in a.items() if k != "_pub_dt"} for a in combined]

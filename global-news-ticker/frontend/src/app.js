@@ -158,11 +158,17 @@ function buildRegionBar(byRegion) {
   REGIONS.forEach(r => mkBtn(`${REGION_META[r]?.flag ?? ""} ${r} (${(byRegion[r] || []).length})`, r));
 }
 
-// ── View renderers ─────────────────────────────────────────────────────────
+// ── Shared region-column layout ────────────────────────────────────────────
 
-function renderRegions(articles) {
+/**
+ * Renders articles in regional columns (same layout for all views).
+ * @param {object[]} articles  - pre-filtered/sorted articles for this view
+ * @param {string}   emptyMsg  - shown per column when no articles match
+ */
+function renderByRegion(articles, emptyMsg = "Keine Artikel") {
   const grid = document.getElementById("news-grid");
 
+  // Group by region (preserving order within each group)
   const byRegion = Object.fromEntries(REGIONS.map(r => [r, []]));
   articles.forEach(a => { if (byRegion[a.region]) byRegion[a.region].push(a); });
 
@@ -172,12 +178,12 @@ function renderRegions(articles) {
   cols.className = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-5";
 
   REGIONS.forEach(region => {
-    const meta        = REGION_META[region] ?? { flag: "🌍", accent: "border-gray-600" };
-    const regionArts  = byRegion[region] ?? [];
-    const visible     = !activeRegion || activeRegion === region;
+    const meta       = REGION_META[region] ?? { flag: "🌍", accent: "border-gray-600" };
+    const regionArts = byRegion[region] ?? [];
+    const visible    = !activeRegion || activeRegion === region;
 
     const col = document.createElement("div");
-    col.className    = "flex flex-col gap-2.5";
+    col.className      = "flex flex-col gap-2.5";
     col.dataset.region = region;
     col.style.display  = visible ? "" : "none";
 
@@ -192,7 +198,7 @@ function renderRegions(articles) {
     if (regionArts.length === 0) {
       const p = document.createElement("p");
       p.className   = "text-gray-600 text-xs italic text-center mt-6";
-      p.textContent = "Keine Artikel";
+      p.textContent = emptyMsg;
       col.appendChild(p);
     } else {
       regionArts.forEach(a => col.appendChild(buildCard(a)));
@@ -203,62 +209,53 @@ function renderRegions(articles) {
   grid.appendChild(cols);
 }
 
+// ── View renderers ─────────────────────────────────────────────────────────
+
+function renderRegions(articles) {
+  renderByRegion(articles, "Keine Artikel");
+}
+
 function renderTrending(articles) {
-  document.getElementById("region-filter").innerHTML = "";
-  const sorted = [...articles]
+  const filtered = articles
     .filter(a => (a.coverage_count ?? 1) >= 2)
     .sort((a, b) => (b.coverage_count ?? 1) - (a.coverage_count ?? 1));
 
   const grid = document.getElementById("news-grid");
-  if (sorted.length === 0) {
-    const p = document.createElement("p");
-    p.className = "text-gray-500 text-sm text-center py-16";
-    p.textContent = "Keine Trending-Artikel für die gewählten Filter.";
-    grid.appendChild(p); return;
-  }
-  const hdr = document.createElement("p");
-  hdr.className = "text-gray-500 text-sm mb-4";
-  hdr.textContent = `${sorted.length} Artikel von mehreren Quellen gleichzeitig abgedeckt`;
+  const total = filtered.length;
+  const hdr   = document.createElement("p");
+  hdr.className   = "text-gray-500 text-sm mb-4";
+  hdr.textContent = total
+    ? `${total} Artikel von mehreren Quellen gleichzeitig abgedeckt`
+    : "Keine Trending-Artikel für die gewählten Filter.";
   grid.appendChild(hdr);
 
-  const cols = document.createElement("div");
-  cols.className = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4";
-  sorted.forEach(a => cols.appendChild(buildCard(a, { showRegion: true })));
-  grid.appendChild(cols);
+  renderByRegion(filtered, "Kein Trending in dieser Region");
 }
 
 function renderBreaking(articles) {
-  document.getElementById("region-filter").innerHTML = "";
-  const urgent = articles.filter(a => a.urgent);
-  const grid   = document.getElementById("news-grid");
+  const filtered = articles.filter(a => a.urgent);
 
-  if (urgent.length === 0) {
-    const p = document.createElement("p");
-    p.className = "text-gray-500 text-sm text-center py-16";
-    p.textContent = "Aktuell keine Breaking-News in den gefilterten Artikeln.";
-    grid.appendChild(p); return;
-  }
-  const hdr = document.createElement("p");
+  const grid = document.getElementById("news-grid");
+  const hdr  = document.createElement("p");
   hdr.className = "text-gray-500 text-sm mb-4";
-  hdr.innerHTML = `<span class="text-red-400 urgent-pulse">⚡</span> ${urgent.length} Breaking-Artikel`;
+  hdr.innerHTML = filtered.length
+    ? `<span class="text-red-400 urgent-pulse">⚡</span> ${filtered.length} Breaking-Artikel`
+    : "Aktuell keine Breaking-News in den gefilterten Artikeln.";
   grid.appendChild(hdr);
 
-  const cols = document.createElement("div");
-  cols.className = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4";
-  urgent.forEach(a => cols.appendChild(buildCard(a, { showRegion: true })));
-  grid.appendChild(cols);
+  renderByRegion(filtered, "Kein Breaking in dieser Region");
 }
 
 function renderMostRead(articles) {
-  document.getElementById("region-filter").innerHTML = "";
-  const clicks = getClicks();
-  const withClicks = articles
+  const clicks     = getClicks();
+  const filtered   = articles
     .map(a => ({ ...a, _clicks: clicks[a.link] || 0 }))
     .filter(a => a._clicks > 0)
     .sort((a, b) => b._clicks - a._clicks);
 
   const grid = document.getElementById("news-grid");
-  if (withClicks.length === 0) {
+
+  if (filtered.length === 0) {
     const info = document.createElement("div");
     info.className = "flex flex-col items-center py-20 text-gray-500 gap-3";
     info.innerHTML = `
@@ -271,17 +268,16 @@ function renderMostRead(articles) {
       </svg>
       <p class="text-sm text-center">Du hast noch keine Artikel angeklickt.<br>
          Klicke Artikel an — sie erscheinen hier sortiert nach Klickzahl.</p>`;
-    grid.appendChild(info); return;
+    grid.appendChild(info);
+    return;
   }
+
   const hdr = document.createElement("p");
-  hdr.className = "text-gray-500 text-sm mb-4";
-  hdr.textContent = `${withClicks.length} gelesene Artikel (auf diesem Gerät gespeichert)`;
+  hdr.className   = "text-gray-500 text-sm mb-4";
+  hdr.textContent = `${filtered.length} gelesene Artikel (auf diesem Gerät gespeichert)`;
   grid.appendChild(hdr);
 
-  const cols = document.createElement("div");
-  cols.className = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4";
-  withClicks.forEach(a => cols.appendChild(buildCard(a, { showRegion: true })));
-  grid.appendChild(cols);
+  renderByRegion(filtered, "Noch nichts gelesen in dieser Region");
 }
 
 // ── Central render ─────────────────────────────────────────────────────────
